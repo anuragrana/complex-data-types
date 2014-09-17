@@ -1,6 +1,10 @@
 package com.aerospike.cdt;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -16,6 +20,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.AerospikeException;
@@ -36,6 +43,7 @@ public class CDTmain {
 	private static final String RECORD_WITH_LIST_MAP_PETER = "record-with-list-map-peter";
 	private static final String RECORD_WITH_LIST_LIST_PETER = "record-with-list-list-peter";
 	private static final String RECORD_WITH_LIST_PETER = "record-with-list-peter";
+	private static final String RECORD_WITH_JSON_PETER = "record-with-json-peter";
 	private static Logger log = Logger.getLogger(CDTmain.class);
 	AerospikeClient client;
 	private String seedHost;
@@ -91,6 +99,7 @@ public class CDTmain {
 		cdt.listList();
 		cdt.mapList();
 		cdt.listMap();
+		cdt.json();
 
 	}
 	private void listMap() {
@@ -154,6 +163,13 @@ public class CDTmain {
 					new Key(namespace, set, Value.get(RECORD_WITH_LIST_MAP_PETER)), 
 					"document", "get", Value.get("flight-map"), Value.getAsList(path));
 			log.info("UDF element: " + result);
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_LIST_MAP_PETER)), 
+					"document", "set", Value.get("flight-map"), Value.getAsList(path), Value.get("spirit"));
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_LIST_MAP_PETER)), 
+					"document", "get", Value.get("flight-map"), Value.getAsList(path));
+			log.info("UDF element after update: " + result);
 			/*
 			 * delete the record
 			 *
@@ -203,6 +219,13 @@ public class CDTmain {
 					new Key(namespace, set, Value.get(RECORD_WITH_MAP_LIST_PETER)), 
 					"document", "get", Value.get("flight-map"), Value.getAsList(path));
 			log.info("UDF element: " + result);
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_MAP_LIST_PETER)), 
+					"document", "set", Value.get("flight-map"), Value.getAsList(path), Value.get("otters"));
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_MAP_LIST_PETER)), 
+					"document", "get", Value.get("flight-map"), Value.getAsList(path));
+			log.info("UDF element after update: " + result);
 			/*
 			 * delete the record
 			 *
@@ -251,11 +274,18 @@ public class CDTmain {
 					new Key(namespace, set, Value.get(RECORD_WITH_LIST_LIST_PETER)), 
 					"document", "get", Value.get("flight-map"), Value.getAsList(path));
 			log.info("UDF element: " + result);
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_LIST_LIST_PETER)), 
+					"document", "set", Value.get("flight-map"), Value.getAsList(path), Value.get("spirit"));
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_LIST_LIST_PETER)), 
+					"document", "get", Value.get("flight-map"), Value.getAsList(path));
+			log.info("UDF element after update: " + result);
 			/*
 			 * delete the record
 			 *
 			 */
-			client.delete(writePolicy, new Key(namespace, set, Value.get(RECORD_WITH_LIST_MAP_PETER)));
+			client.delete(writePolicy, new Key(namespace, set, Value.get(RECORD_WITH_LIST_LIST_PETER)));
 		} catch (AerospikeException e){
 			log.error(ResultCode.getResultString(e.getResultCode()));
 			log.debug("Detailed error:", e);
@@ -264,8 +294,61 @@ public class CDTmain {
 	}
 	private void list() {
 		log.info("*** List");
-		// TODO Auto-generated method stub
-		
+		try {
+			WritePolicy writePolicy = new WritePolicy();
+			Policy policy = new Policy();
+			/*
+			 * build a list to store in a bin
+			 */
+			List<String> flightList = new ArrayList<String>();
+			flightList.add("united");
+			flightList.add("singapore");
+			flightList.add("qantas");
+			flightList.add("virgin");
+			flightList.add("american");
+			flightList.add("emirates");
+			/*
+			 * write the record
+			 */
+			this.client.put(writePolicy, new Key(namespace, set, Value.get(RECORD_WITH_LIST_PETER)), 
+					new Bin("name", Value.get("peter")),
+					new Bin("number", Value.get(1234567890)),
+					new Bin("flight-map", Value.getAsList(flightList))
+					);
+			/*
+			 * read the record and print it
+			 */
+			Record record = client.get(policy, new Key(namespace, set, Value.get(RECORD_WITH_LIST_PETER)));
+			log.info("Record: " + record);
+			/*
+			 * invoke the UDF to get an element from a document
+			 */
+			List<? extends Object> path = Arrays.asList(4);
+			log.info("Path: " + path);
+			Object result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_LIST_PETER)), 
+					"document", "get", Value.get("flight-map"), Value.getAsList(path));
+			log.info("UDF element: " + result);
+			/*
+			 * invoke the UDF to set an element in a document
+			 */
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_LIST_PETER)), 
+					"document", "set", Value.get("flight-map"), Value.getAsList(path), Value.get("spirit"));
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_LIST_PETER)), 
+					"document", "get", Value.get("flight-map"), Value.getAsList(path));
+			log.info("UDF element after update: " + result);
+			/*
+			 * delete the record
+			 *
+			 */
+			client.delete(writePolicy, new Key(namespace, set, Value.get(RECORD_WITH_LIST_PETER)));
+		} catch (AerospikeException e){
+			log.error(ResultCode.getResultString(e.getResultCode()));
+			log.debug("Detailed error:", e);
+		}
+
 	}
 	private void registerUDF() throws AerospikeException {
 		/*
@@ -312,10 +395,19 @@ public class CDTmain {
 			/*
 			 * invoke the UDF to get an element from a document
 			 */
+			List<String> path = Arrays.asList("SYD-SFO");
+			log.info("Path: " + path);
 			Object result = client.execute(policy, 
 					new Key(namespace, set, Value.get(RECORD_WITH_MAP_PETER)), 
-					"document", "get", Value.get("flight-map"), Value.get("SYD-SFO"));
+					"document", "get", Value.get("flight-map"), Value.getAsList(path));
 			log.info("UDF element: " + result);
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_MAP_PETER)), 
+					"document", "set", Value.get("flight-map"), Value.getAsList(path), Value.get(99999));
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_MAP_PETER)), 
+					"document", "get", Value.get("flight-map"), Value.getAsList(path));
+			log.info("UDF element after update: " + result);
 			/*
 			 * delete the record
 			 *
@@ -388,6 +480,13 @@ public class CDTmain {
 					new Key(namespace, set, Value.get(RECORD_WITH_MAP_MAP_PETER)), 
 					"document", "get", Value.get("flight-map"), Value.getAsList(path));
 			log.info("UDF element: " + result);
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_MAP_MAP_PETER)), 
+					"document", "set", Value.get("flight-map"), Value.getAsList(path), Value.get("spirit"));
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_MAP_MAP_PETER)), 
+					"document", "get", Value.get("flight-map"), Value.getAsList(path));
+			log.info("UDF element after update: " + result);
 			/*
 			 * delete the record
 			 *
@@ -399,6 +498,99 @@ public class CDTmain {
 		}
 
 	}
+	
+	private void json(){
+		log.info("*** JSON");
+		try {
+			WritePolicy writePolicy = new WritePolicy();
+			Policy policy = new Policy();
+			JSONParser parser = new JSONParser();
+			/*
+			 * build a JSON array to store in a bin
+			 */
+			File arrayFile = new File("json/JSONarray.json");
+			Object obj = parser.parse(new FileReader(arrayFile));
+			JSONArray array = (JSONArray)obj;
+			/*
+			 * build a JSON object to store in a bin
+			 */
+			File objectFile = new File("json/JSONobject.json");
+			obj = parser.parse(new FileReader(objectFile));
+			JSONObject jasonObject = (JSONObject)obj;
+			/*
+			 * write the record
+			 */
+			this.client.put(writePolicy, new Key(namespace, set, Value.get(RECORD_WITH_JSON_PETER)), 
+					new Bin("name", Value.get("peter")),
+					new Bin("number", Value.get(1234567890)),
+					new Bin("flight-list", Value.getAsList(array)),
+					new Bin("flight-object", Value.getAsMap(jasonObject))
+					);
+			/*
+			 * read the record and print it
+			 */
+			Record record = client.get(policy, new Key(namespace, set, Value.get(RECORD_WITH_JSON_PETER)));
+			log.info("Record: " + record);
+			/*
+			 * invoke the UDF to get an element from a document
+			 */
+			List<? extends Object> path = Arrays.asList(1, "topping", 2, "type");
+			Object result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_JSON_PETER)), 
+					"document", "get", Value.get("flight-list"), Value.getAsList(path));
+			log.info("UDF element: " + result);
+
+			path = Arrays.asList("thumbnail", "url");
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_JSON_PETER)), 
+					"document", "get", Value.get("flight-object"), Value.getAsList(path));
+			log.info("UDF element: " + result);
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_JSON_PETER)), 
+					"document", "set", Value.get("flight-object"), Value.getAsList(path), Value.get("dummy"));
+			result = client.execute(policy, 
+					new Key(namespace, set, Value.get(RECORD_WITH_JSON_PETER)), 
+					"document", "get", Value.get("flight-object"), Value.getAsList(path));
+			log.info("UDF element after update: " + result);
+			/*
+			 * delete the record
+			 *
+			 */
+			client.delete(writePolicy, new Key(namespace, set, Value.get(RECORD_WITH_JSON_PETER)));
+		} catch (AerospikeException e){
+			log.error(ResultCode.getResultString(e.getResultCode()));
+			log.debug("Detailed error:", e);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (org.json.simple.parser.ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+	String readFile(String fileName) throws IOException {
+	    BufferedReader br = new BufferedReader(new FileReader(fileName));
+	    try {
+	        StringBuilder sb = new StringBuilder();
+	        String line = br.readLine();
+
+	        while (line != null) {
+	            sb.append(line);
+	            sb.append("\n");
+	            line = br.readLine();
+	        }
+	        return sb.toString();
+	    } finally {
+	        br.close();
+	    }
+	}
+	
+	
 	private static void logUsage(Options options) {
 		HelpFormatter formatter = new HelpFormatter();
 		StringWriter sw = new StringWriter();
