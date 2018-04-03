@@ -11,7 +11,7 @@ By default, you store and retrieve the whole list from the client API. So do con
 
 Lists are rendered into msgpack for local storage. Lists are serialized on the client, and sent to the server using the wire protocol. 
 
-##Map
+## Map
 Map is a collection of key-value pairs, such that each key may only appear once in the collection and is associated with a value. The key and value of a map may be of any of the supported data-types, including other Lists and Maps. The size is limited only by the maximum record size.
 
 A Map is ideally suited to storing a JSON Object and is store internally in a language neutral way. So a Map can be written in Java and read in Go with no issues. 
@@ -20,7 +20,7 @@ Like a list, you store and retrieve the whole map from the client API. So do con
 
 Maps are rendered into msgpack for local storage. Maps are serialized on the client, and sent the server using the wire protocol. 
 
-##JSON
+## JSON
 A combination of Lists and Maps allows you to store JSON documents. It is better to use a List/Map combination rather than a JSON document as a string.
 
 # Document UDF
